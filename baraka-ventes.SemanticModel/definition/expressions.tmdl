@@ -1,0 +1,1 @@
+expression 'Chemin du fichier Excel' = "C:\Users\balbi\Desktop\byteGirl\baraka-ventes-2026.xlsx" meta [IsParameterQuery=true, Type="Text", IsParameterQueryRequired=true]

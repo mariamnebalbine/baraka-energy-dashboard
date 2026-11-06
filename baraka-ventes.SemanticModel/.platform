@@ -1,0 +1,11 @@
+{
+  "$schema": "https://developer.microsoft.com/json-schemas/fabric/gitIntegration/platformProperties/2.0.0/schema.json",
+  "metadata": {
+    "type": "SemanticModel",
+    "displayName": "baraka-ventes"
+  },
+  "config": {
+    "version": "2.0",
+    "logicalId": "1c36cff9-94ab-4147-93ef-1d2750223c91"
+  }
+}

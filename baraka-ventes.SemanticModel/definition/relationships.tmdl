@@ -1,0 +1,4 @@
+relationship 'Ventes vers Calendrier'
+	fromColumn: Ventes.Date
+	toColumn: Calendrier.Date
+

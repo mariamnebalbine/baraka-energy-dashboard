@@ -1,0 +1,57 @@
+/// Table de dates continue (1er jour du premier mois au dernier jour du dernier mois de ventes). Sert de dimension temps pour toutes les analyses.
+table Calendrier
+	dataCategory: Time
+
+	/// Jour calendaire. Clé de la table de dates.
+	column Date
+		dataType: dateTime
+		isKey
+		formatString: dd/mm/yyyy
+		summarizeBy: none
+		sourceColumn: Date
+
+	/// Année civile.
+	column Année
+		dataType: int64
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Année
+
+	/// Numéro du mois (1 à 12). Sert uniquement à trier le nom du mois.
+	column 'Numéro du mois'
+		dataType: int64
+		isHidden
+		formatString: 0
+		summarizeBy: none
+		sourceColumn: Numéro du mois
+
+	/// Nom abrégé du mois, trié chronologiquement.
+	column Mois
+		dataType: string
+		summarizeBy: none
+		sortByColumn: 'Numéro du mois'
+		sourceColumn: Mois
+
+	partition Calendrier = m
+		mode: import
+		source =
+				let
+				    // Ouvre le classeur Excel pour retrouver la période couverte par les ventes.
+				    Source = Excel.Workbook(File.Contents(#"Chemin du fichier Excel"), null, true),
+				    #"Feuille Ventes sélectionnée" = Source{[Item="Ventes",Kind="Sheet"]}[Data],
+				    #"En-têtes promus" = Table.PromoteHeaders(#"Feuille Ventes sélectionnée", [PromoteAllScalars=true]),
+				    #"Colonne Date isolée" = Table.TransformColumnTypes(Table.SelectColumns(#"En-têtes promus", {"Date"}), {{"Date", type date}}),
+				    // Étend la période au mois complet pour éviter des mois tronqués.
+				    #"Premier jour défini" = Date.StartOfMonth(List.Min(#"Colonne Date isolée"[Date])),
+				    #"Dernier jour défini" = Date.EndOfMonth(List.Max(#"Colonne Date isolée"[Date])),
+				    #"Dates générées" = List.Dates(#"Premier jour défini", Duration.Days(#"Dernier jour défini" - #"Premier jour défini") + 1, #duration(1, 0, 0, 0)),
+				    #"Converti en table" = Table.FromList(#"Dates générées", Splitter.SplitByNothing(), {"Date"}, null, ExtraValues.Error),
+				    #"Type date défini" = Table.TransformColumnTypes(#"Converti en table", {{"Date", type date}}),
+				    #"Année ajoutée" = Table.AddColumn(#"Type date défini", "Année", each Date.Year([Date]), Int64.Type),
+				    #"Numéro du mois ajouté" = Table.AddColumn(#"Année ajoutée", "Numéro du mois", each Date.Month([Date]), Int64.Type),
+				    #"Nom du mois ajouté" = Table.AddColumn(#"Numéro du mois ajouté", "Mois", each {"Janv.", "Févr.", "Mars", "Avr.", "Mai", "Juin", "Juil.", "Août", "Sept.", "Oct.", "Nov.", "Déc."}{[Numéro du mois] - 1}, type text)
+				in
+				    #"Nom du mois ajouté"
+
+	annotation PBI_ResultType = Table
+

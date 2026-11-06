@@ -1,0 +1,205 @@
+/// Lignes de vente 2026 (une ligne = une vente) importées depuis le classeur Excel.
+table Ventes
+
+	/// Montant total des ventes en dollars US (USD).
+	measure 'Chiffre d''affaires' = SUM(Ventes[Montant USD])
+		formatString: $#,##0
+		displayFolder: Ventes
+
+	/// Nombre de lignes de vente (transactions) enregistrées.
+	measure 'Nombre de ventes' = COUNTROWS(Ventes)
+		formatString: #,##0
+		displayFolder: Ventes
+
+	/// Nombre total d'unités vendues.
+	measure 'Quantité vendue' = SUM(Ventes[Quantité])
+		formatString: #,##0
+		displayFolder: Ventes
+
+	/// Chiffre d'affaires moyen par vente.
+	measure 'Panier moyen' = DIVIDE([Chiffre d'affaires], [Nombre de ventes])
+		formatString: $#,##0.00
+		displayFolder: Ventes
+
+	/// Chiffre d'affaires divisé par la quantité vendue : prix moyen réellement encaissé par unité.
+	measure 'Prix unitaire moyen' = DIVIDE([Chiffre d'affaires], [Quantité vendue])
+		formatString: $#,##0.00
+		displayFolder: Ventes
+
+	/// Poids du contexte courant dans le chiffre d'affaires total de la sélection active (segments et filtres inclus).
+	measure 'Part du chiffre d''affaires (%)' = DIVIDE([Chiffre d'affaires], CALCULATE([Chiffre d'affaires], ALLSELECTED(Ventes)))
+		formatString: 0.0%
+		displayFolder: Ventes
+
+	/// Nombre d'agents commerciaux ayant réalisé au moins une vente.
+	measure 'Agents actifs' = DISTINCTCOUNT(Ventes[Agent])
+		formatString: #,##0
+		displayFolder: Équipe
+
+	/// Chiffre d'affaires moyen par agent actif.
+	measure 'Chiffre d''affaires par agent' = DIVIDE([Chiffre d'affaires], [Agents actifs])
+		formatString: $#,##0
+		displayFolder: Équipe
+
+	/// Évolution du chiffre d'affaires par rapport au mois précédent. À utiliser dans un contexte mensuel.
+	measure 'Variation mensuelle du chiffre d''affaires (%)' = ```
+			VAR Courant = [Chiffre d'affaires]
+			VAR Precedent = CALCULATE([Chiffre d'affaires], DATEADD(Calendrier[Date], -1, MONTH))
+			RETURN
+			    IF(NOT ISBLANK(Precedent) && Precedent <> 0, DIVIDE(Courant - Precedent, Precedent))
+			```
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Évolution
+
+	/// Variation du chiffre d'affaires du dernier mois de vente de la sélection par rapport au mois précédent. Respecte les segments pays, catégorie et mode de paiement.
+	measure 'Variation du dernier mois (%)' = ```
+			VAR DerniereDate = MAX(Ventes[Date])
+			VAR DebutMois = DATE(YEAR(DerniereDate), MONTH(DerniereDate), 1)
+			VAR DebutMoisPrecedent = EDATE(DebutMois, -1)
+			VAR MoisCourant =
+			    CALCULATE([Chiffre d'affaires], REMOVEFILTERS(Calendrier), DATESBETWEEN(Calendrier[Date], DebutMois, EOMONTH(DebutMois, 0)))
+			VAR MoisPrecedent =
+			    CALCULATE([Chiffre d'affaires], REMOVEFILTERS(Calendrier), DATESBETWEEN(Calendrier[Date], DebutMoisPrecedent, EOMONTH(DebutMoisPrecedent, 0)))
+			RETURN
+			    IF(NOT ISBLANK(MoisPrecedent) && MoisPrecedent <> 0, DIVIDE(MoisCourant - MoisPrecedent, MoisPrecedent))
+			```
+		formatString: +0.0%;-0.0%;0.0%
+		displayFolder: Évolution
+
+	/// Pays au plus fort chiffre d'affaires dans la sélection.
+	measure 'Pays leader' = MAXX(TOPN(1, VALUES(Ventes[Pays]), [Chiffre d'affaires]), Ventes[Pays])
+		formatString: @
+		displayFolder: Classements
+
+	/// Part du chiffre d'affaires réalisée par le pays leader.
+	measure 'Part du pays leader (%)' = ```
+			VAR Leader = [Pays leader]
+			RETURN
+			    DIVIDE(CALCULATE([Chiffre d'affaires], Ventes[Pays] = Leader), [Chiffre d'affaires])
+			```
+		formatString: 0.0%
+		displayFolder: Classements
+
+	/// Ville au plus fort chiffre d'affaires dans la sélection.
+	measure 'Ville leader' = MAXX(TOPN(1, VALUES(Ventes[Ville]), [Chiffre d'affaires]), Ventes[Ville])
+		formatString: @
+		displayFolder: Classements
+
+	/// Part du chiffre d'affaires réalisée par la ville leader.
+	measure 'Part de la ville leader (%)' = ```
+			VAR Leader = [Ville leader]
+			RETURN
+			    DIVIDE(CALCULATE([Chiffre d'affaires], Ventes[Ville] = Leader), [Chiffre d'affaires])
+			```
+		formatString: 0.0%
+		displayFolder: Classements
+
+	/// Agent au plus fort chiffre d'affaires dans la sélection.
+	measure 'Agent leader' = MAXX(TOPN(1, VALUES(Ventes[Agent]), [Chiffre d'affaires]), Ventes[Agent])
+		formatString: @
+		displayFolder: Classements
+
+	/// Chiffre d'affaires de l'agent leader.
+	measure 'Chiffre d''affaires de l''agent leader' = ```
+			VAR Leader = [Agent leader]
+			RETURN
+			    CALCULATE([Chiffre d'affaires], Ventes[Agent] = Leader)
+			```
+		formatString: $#,##0
+		displayFolder: Classements
+
+	/// Date de la vente (colonne technique : utiliser Calendrier[Date]).
+	column Date
+		dataType: dateTime
+		isHidden
+		formatString: dd/mm/yyyy
+		lineageTag: eb001e05-f067-45f0-89c6-6f1ef3ca47b1
+		summarizeBy: none
+		sourceColumn: Date
+
+	/// Pays de la vente.
+	column Pays
+		dataType: string
+		lineageTag: 7182064e-836e-4538-b36c-60dfb20180eb
+		dataCategory: Country
+		summarizeBy: none
+		sourceColumn: Pays
+
+	/// Ville de la vente.
+	column Ville
+		dataType: string
+		lineageTag: eb56c33b-1fab-4a4b-8090-f62824a351d5
+		dataCategory: City
+		summarizeBy: none
+		sourceColumn: Ville
+
+	/// Agent commercial ayant réalisé la vente.
+	column Agent
+		dataType: string
+		lineageTag: b37f7d34-77d9-4a2f-8181-2578e530b6dd
+		summarizeBy: none
+		sourceColumn: Agent
+
+	/// Produit vendu.
+	column Produit
+		dataType: string
+		lineageTag: 504f4793-dc34-406b-bdcd-fa0e6ee59e5b
+		summarizeBy: none
+		sourceColumn: Produit
+
+	/// Catégorie du produit (Kit solaire, Appareil, Accessoire, Éclairage).
+	column 'Catégorie'
+		dataType: string
+		lineageTag: e08e0732-326a-46dd-a550-809d57aa62e4
+		summarizeBy: none
+		sourceColumn: Catégorie
+
+	/// Unités vendues sur la ligne (agrégée par la mesure Quantité vendue).
+	column 'Quantité'
+		dataType: int64
+		isHidden
+		formatString: 0
+		lineageTag: 79a08da8-30d1-46af-b487-35f94e910bb2
+		summarizeBy: none
+		sourceColumn: Quantité
+
+	/// Prix catalogue unitaire en USD.
+	column 'Prix unitaire USD'
+		dataType: decimal
+		isHidden
+		formatString: #,##0.00
+		lineageTag: 3827ef06-3e6d-425f-9e10-08046b8221e1
+		summarizeBy: none
+		sourceColumn: Prix unitaire USD
+
+	/// Montant de la ligne en USD (agrégé par la mesure Chiffre d'affaires). Type décimal pour conserver les centimes.
+	column 'Montant USD'
+		dataType: decimal
+		isHidden
+		formatString: #,##0.00
+		lineageTag: 879ce85e-a9e9-47c6-97b0-8bbd5115f30b
+		summarizeBy: none
+		sourceColumn: Montant USD
+
+	/// Mode de paiement (Mobile money, Crédit PAYGO, Espèces).
+	column Paiement
+		dataType: string
+		lineageTag: 5b78ef29-efe1-4a4f-a32d-13d6019f7931
+		summarizeBy: none
+		sourceColumn: Paiement
+
+	partition Ventes = m
+		mode: import
+		source =
+				let
+				    // Charge la feuille Ventes du classeur désigné par le paramètre Chemin du fichier Excel.
+				    Source = Excel.Workbook(File.Contents(#"Chemin du fichier Excel"), null, true),
+				    #"Feuille Ventes sélectionnée" = Source{[Item="Ventes",Kind="Sheet"]}[Data],
+				    #"En-têtes promus" = Table.PromoteHeaders(#"Feuille Ventes sélectionnée", [PromoteAllScalars=true]),
+				    #"Types modifiés" = Table.TransformColumnTypes(#"En-têtes promus", {{"Date", type date}, {"Pays", type text}, {"Ville", type text}, {"Agent", type text}, {"Produit", type text}, {"Catégorie", type text}, {"Quantité", Int64.Type}, {"Prix unitaire USD", Currency.Type}, {"Montant USD", Currency.Type}, {"Paiement", type text}})
+				in
+				    #"Types modifiés"
+
+	annotation PBI_NavigationStepName = Navigation
+
+	annotation PBI_ResultType = Table

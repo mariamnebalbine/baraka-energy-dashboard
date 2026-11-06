@@ -1,0 +1,21 @@
+model Model
+	culture: fr-FR
+	defaultPowerBIDataSourceVersion: powerBI_V3
+	sourceQueryCulture: fr-FR
+	valueFilterBehavior: independent
+	discourageImplicitMeasures
+	dataAccessOptions
+		legacyRedirects
+		returnErrorValuesAsNull
+
+annotation __PBI_TimeIntelligenceEnabled = 0
+
+annotation PBI_QueryOrder = ["Chemin du fichier Excel","Ventes","Calendrier"]
+
+annotation PBI_ProTooling = ["DevMode"]
+
+ref table Ventes
+ref table Calendrier
+ref expression 'Chemin du fichier Excel'
+
+ref cultureInfo fr-FR
