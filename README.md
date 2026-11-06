@@ -5,8 +5,13 @@ Tableau de bord commercial interactif (projet Power BI au format PBIP) créé av
 ## Contenu
 
 - **Vue d'ensemble** : indicateurs clés, évolution mensuelle, catégories, pays, produits et modes de paiement.
+![Vue d'ensemble](captures/vue-ensemble.png)
 - **Pays et agents** : classements des pays, villes et agents, avec un tableau de performance détaillé.
+![Pays et agents](captures/pays-agents.png)
 - **Produits et paiements** : performance par produit, évolution par mode de paiement et panier moyen.
+
+
+![Produits et paiements](captures/produits-paiements.png)
 
 ## Remerciements
 
